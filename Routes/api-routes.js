@@ -1,50 +1,51 @@
-
-// dependencies 
 const path = require('path');
-const fs = require('fs')
+const fs = require('fs');
+const uniqid = require('uniqid');
 
-// npm package that allows for unique ids to be created
-var uniqid = require('uniqid');
-
-
-// routing
 module.exports = (app) => {
 
-  // GET /api/notes should read the db.json file and return all saved notes as JSON.
-  app.get('/api/notes', (req, res) => {
-    res.sendFile(path.join(__dirname, '../db/db.json'));
-  });
-
-  // POST /api/notes should receive a new note to save on the request body, 
-  // add it to the db.json file, and then return the new note to the client. 
+  //Route to Note
   app.post('/api/notes', (req, res) => {
-    let db = fs.readFileSync('db/db.json');
-    db = JSON.parse(db);
-    res.json(db);
-    // creating body for note
-    let userNote = {
-      title: req.body.title,
-      text: req.body.text,
-      // creating unique id for each note
-      id: uniqid(),
-    };
-    // pushing created note to be written in the db.json file
-    db.push(userNote);
-    fs.writeFileSync('db/db.json', JSON.stringify(db));
-    res.json(db);
+    try {
+      
+	//Read note
+      const db = JSON.parse(fs.readFileSync('db/db.json'));
 
+      //Create note
+      const newNote = {
+        title: req.body.title,
+        text: req.body.text,
+        id: uniqid(),
+      };
+
+      //Push note to database
+      db.push(newNote);
+
+      //Write to db file
+      fs.writeFileSync('db/db.json', JSON.stringify(db));
+
+      //Send response
+      res.json(db);
+    } catch (error) {
+      console.error('Error adding new note:', error);
+      res.status(500).json({ error: 'Failed to add new note' });
+    }
   });
 
-
-  // DELETE /api/notes/:id should receive a query parameter containing the id of a note to delete.
+  //Route to delete
   app.delete('/api/notes/:id', (req, res) => {
-    // reading notes form db.json
-    let db = JSON.parse(fs.readFileSync('db/db.json'))
-    // removing note with id
-    let deleteNotes = db.filter(item => item.id !== req.params.id);
-    // Rewriting note to db.json
-    fs.writeFileSync('db/db.json', JSON.stringify(deleteNotes));
-    res.json(deleteNotes);
-    
-  })
+	try {
+		
+	const db = JSON.parse(fs.readFileSync('db/db.json'));
+		  
+    const updatedNotes = db.filter((note) => note.id !== req.params.id);
+
+	fs.writeFileSync('db/db.json', JSON.stringify(updatedNotes));
+		
+    res.json(updatedNotes);
+    } catch (error) {
+      console.error('Error deleting note:', error);
+      res.status(500).json({ error: 'Failed to delete note' });
+    }
+  });
 };
