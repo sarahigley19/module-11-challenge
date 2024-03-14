@@ -1,51 +1,24 @@
-const path = require('path');
-const fs = require('fs');
-const uniqid = require('uniqid');
+const router = require('express').Router();
+const { createNewNote, updateDb } = require("../../lib/notes");
+const { v4: uuidv4 } = require('uuid');
+const { notes } = require("../../db/db.json");
 
-module.exports = (app) => {
+// show all notes in json data
+router.get("/notes", (req, res) => {
+  let results = notes;
+  res.json(results);
+});
 
-  //Route to Note
-  app.post('/api/notes', (req, res) => {
-    try {
-      
-	//Read note
-      const db = JSON.parse(fs.readFileSync('db/db.json'));
+router.post("/notes", (req, res) => {
+  req.body.id = uuidv4();
+  const newNote = createNewNote(req.body, notes);
+  res.json(newNote);
+});
 
-      //Create note
-      const newNote = {
-        title: req.body.title,
-        text: req.body.text,
-        id: uniqid(),
-      };
+router.delete("/notes/:id", (req, res) => {
+  const params = req.params.id
+  updateDb(params, notes);
+  res.redirect('');
+});
 
-      //Push note to database
-      db.push(newNote);
-
-      //Write to db file
-      fs.writeFileSync('db/db.json', JSON.stringify(db));
-
-      //Send response
-      res.json(db);
-    } catch (error) {
-      console.error('Error adding new note:', error);
-      res.status(500).json({ error: 'Failed to add new note' });
-    }
-  });
-
-  //Route to delete
-  app.delete('/api/notes/:id', (req, res) => {
-	try {
-		
-	const db = JSON.parse(fs.readFileSync('db/db.json'));
-		  
-    const updatedNotes = db.filter((note) => note.id !== req.params.id);
-
-	fs.writeFileSync('db/db.json', JSON.stringify(updatedNotes));
-		
-    res.json(updatedNotes);
-    } catch (error) {
-      console.error('Error deleting note:', error);
-      res.status(500).json({ error: 'Failed to delete note' });
-    }
-  });
-};
+module.exports = router;
